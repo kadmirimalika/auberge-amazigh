@@ -1,0 +1,93 @@
+/* src/styles/styles.css */
+
+/* Global Styles */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #F2EDDF; /* Main Color */
+  color: #374B26; /* Secondary Color */
+}
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background-color: #F2EDDF; /* Main Color */
+  color: #374B26; /* Secondary Color */
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3 {
+  color: #374B26; /* For headings */
+}
+
+a {
+  color: #374B26; /* Links color */
+  text-decoration: none;
+}
+
+button {
+  background-color: #374B26;
+  color: #fff;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #F2EDDF;
+  color: #374B26;
+}
+#root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* Header styles */
+header {
+  background-color: #374B26;
+  padding: 20px;
+  color: #fff;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000; /* Always on top */
+}
+
+nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;            /* Make the list horizontal */
+  justify-content: center;  /* Center the list horizontally */
+  gap: 20px;                /* Space between links */
+}
+
+nav ul li {
+  display: inline-block;
+}
+
+nav ul li a {
+  color: #fff;
+  font-weight: bold;
+  text-decoration: none;
+  font-size: 18px;
+}
+
+nav ul li a:hover {
+  text-decoration: underline;
+}
+main {
+  flex: 1; /* Make main grow and push footer down */
+  padding: 20px;
+}
+
+footer {
+  background-color: #374B26;
+  padding: 20px;
+  color: #fff;
+  text-align: center;
+   margin-top: auto;
+}

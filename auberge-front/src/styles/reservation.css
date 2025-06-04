@@ -1,0 +1,190 @@
+/* Container */
+.reservation-container {
+  background-color: #f2eddf;
+  min-height: 100vh;
+  padding: 1rem;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* Header */
+.reservation-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.reservation-header h1 {
+  font-size: 2rem;
+  color: #374b26;
+}
+
+.reservation-header p {
+  font-size: 1rem;
+  color: #666;
+}
+
+/* Room Selection */
+.room-selection-section {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.room-selection-section h2 {
+  font-size: 1.5rem;
+  color: #374b26;
+  margin-bottom: 1rem;
+}
+
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.room-card {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.room-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.room-card.selected {
+  border-color: #374b26;
+}
+
+.room-card img {
+  width: 100% !important;
+  height: 120px !important;
+  object-fit: cover !important;
+  display: block;
+}
+
+/* Room Info */
+.room-info {
+  padding: 1rem;
+}
+
+.room-info h3 {
+  color: #374b26;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.room-info p {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.room-price {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #374b26;
+}
+
+/* Booking Form Section */
+.booking-form-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+}
+
+.booking-form-section h2 {
+  font-size: 1.5rem;
+  color: #374b26;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.booking-form {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 0.95rem;
+  color: #374b26;
+  margin-bottom: 0.3rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.error-message {
+  color: red;
+  font-size: 0.85rem;
+}
+
+/* Booking Summary */
+.booking-summary {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 6px;
+  border-left: 4px solid #374b26;
+  font-size: 0.95rem;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.summary-item.total {
+  font-weight: bold;
+  margin-top: 0.5rem;
+  border-top: 1px solid #ccc;
+  padding-top: 0.5rem;
+}
+
+/* Submit Button */
+.submit-button {
+  display: block;
+  width: 100%;
+  padding: 0.8rem;
+  background: #374b26;
+  color: white;
+  font-size: 1rem;
+  border: none;
+  border-radius: 6px;
+  margin-top: 1.5rem;
+  cursor: pointer;
+}
+
+.submit-button:hover {
+  background: #2c3e20;
+}
