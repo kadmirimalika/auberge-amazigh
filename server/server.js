@@ -10,9 +10,23 @@ require("dotenv").config()
 
 const app = express()
 
-// Middleware
-app.use(cors())
+// Improved CORS configuration
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+)
+
 app.use(express.json())
+
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
+  next()
+})
 
 console.log("Connecting to MongoDB...")
 
@@ -98,17 +112,86 @@ const upload = multer({
 // Serve uploaded files statically
 app.use("/uploads", express.static(uploadsDir))
 
-// AUTH MIDDLEWARE
+// IMPROVED AUTH MIDDLEWARE WITH DEBUGGING
 const authenticateAdmin = async (req, res, next) => {
   try {
-    const token = req.header("Authorization")?.replace("Bearer ", "")
-    if (!token) return res.status(401).json({ message: "Access denied. No token provided." })
+    console.log("=== AUTHENTICATION DEBUG ===")
+    console.log("Request URL:", req.url)
+    console.log("Request method:", req.method)
+    console.log("All headers:", JSON.stringify(req.headers, null, 2))
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key")
+    const authHeader = req.header("Authorization")
+    console.log("Authorization header:", authHeader)
+
+    if (!authHeader) {
+      console.log("❌ No Authorization header provided")
+      return res.status(401).json({
+        message: "Access denied. No token provided.",
+        error: "MISSING_AUTH_HEADER",
+      })
+    }
+
+    const token = authHeader.replace("Bearer ", "")
+    console.log("Extracted token:", token.substring(0, 50) + "...")
+
+    if (!token || token === "null" || token === "undefined") {
+      console.log("❌ Invalid token format")
+      return res.status(401).json({
+        message: "Access denied. Invalid token format.",
+        error: "INVALID_TOKEN_FORMAT",
+      })
+    }
+
+    // Check what JWT secret we're using
+    const jwtSecret = process.env.JWT_SECRET || "your-secret-key"
+    console.log("Using JWT secret:", jwtSecret)
+
+    console.log("🔍 Attempting to verify token...")
+    const decoded = jwt.verify(token, jwtSecret)
+    console.log("✅ Token verified successfully:", decoded)
+
+    // Verify admin still exists in database
+    console.log("🔍 Checking if admin exists in database...")
+    const admin = await Admin.findById(decoded.id)
+    if (!admin) {
+      console.log("❌ Admin not found in database")
+      return res.status(401).json({
+        message: "Access denied. Admin not found.",
+        error: "ADMIN_NOT_FOUND",
+      })
+    }
+
+    console.log("✅ Admin found:", admin.username)
+    console.log("=== AUTHENTICATION SUCCESS ===")
     req.admin = decoded
     next()
   } catch (error) {
-    res.status(400).json({ message: "Invalid token." })
+    console.error("❌ Authentication error:", error.name, error.message)
+    console.error("Full error:", error)
+
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        message: "Token expired. Please login again.",
+        error: "TOKEN_EXPIRED",
+        expiredAt: error.expiredAt,
+      })
+    } else if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        message: "Invalid token. Please login again.",
+        error: "INVALID_TOKEN",
+        details: error.message,
+      })
+    } else if (error.name === "NotBeforeError") {
+      return res.status(401).json({
+        message: "Token not active yet.",
+        error: "TOKEN_NOT_ACTIVE",
+      })
+    }
+
+    res.status(401).json({
+      message: "Authentication failed.",
+      error: error.message,
+    })
   }
 }
 
@@ -120,6 +203,8 @@ const initializeAdmin = async () => {
       const hashed = await bcrypt.hash("admin123", 10)
       await new Admin({ username: "admin", password: hashed }).save()
       console.log("Default admin created: username: admin, password: admin123")
+    } else {
+      console.log("Admin already exists:", existing.username)
     }
   } catch (err) {
     console.error("Error initializing admin:", err)
@@ -142,6 +227,8 @@ const initializeRooms = async () => {
       ]
       await Room.insertMany(defaultRooms)
       console.log("Default rooms created")
+    } else {
+      console.log(`${count} rooms already exist in database`)
     }
   } catch (err) {
     console.error("Error initializing rooms:", err)
@@ -150,22 +237,79 @@ const initializeRooms = async () => {
 
 // ROUTES
 
-// Admin Login
+// Improved Admin Login with better logging
 app.post("/api/admin/login", async (req, res) => {
   try {
+    console.log("=== LOGIN ATTEMPT ===")
+    console.log("Request body:", req.body)
+
     const { username, password } = req.body
-    const admin = await Admin.findOne({ username })
-    if (!admin || !(await bcrypt.compare(password, admin.password))) {
-      return res.status(400).json({ message: "Invalid credentials" })
+
+    if (!username || !password) {
+      console.log("❌ Missing username or password")
+      return res.status(400).json({
+        message: "Username and password are required",
+        error: "MISSING_CREDENTIALS",
+      })
     }
 
-    const token = jwt.sign({ id: admin._id, username: admin.username }, process.env.JWT_SECRET || "your-secret-key", {
+    console.log("🔍 Looking for admin:", username)
+    const admin = await Admin.findOne({ username })
+    if (!admin) {
+      console.log("❌ Admin not found:", username)
+      return res.status(400).json({
+        message: "Invalid credentials",
+        error: "INVALID_CREDENTIALS",
+      })
+    }
+
+    console.log("✅ Admin found, checking password...")
+    const isValidPassword = await bcrypt.compare(password, admin.password)
+    if (!isValidPassword) {
+      console.log("❌ Invalid password for admin:", username)
+      return res.status(400).json({
+        message: "Invalid credentials",
+        error: "INVALID_CREDENTIALS",
+      })
+    }
+
+    const jwtSecret = process.env.JWT_SECRET || "your-secret-key"
+    console.log("🔑 Creating token with secret:", jwtSecret)
+
+    const token = jwt.sign({ id: admin._id, username: admin.username }, jwtSecret, {
       expiresIn: "24h",
     })
 
-    res.json({ token, message: "Login successful" })
+    console.log("✅ Token created successfully")
+    console.log("Token preview:", token.substring(0, 50) + "...")
+    console.log("=== LOGIN SUCCESS ===")
+
+    res.json({
+      token,
+      message: "Login successful",
+      admin: { id: admin._id, username: admin.username },
+    })
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message })
+    console.error("❌ Login error:", err)
+    res.status(500).json({
+      message: "Server error during login",
+      error: err.message,
+    })
+  }
+})
+
+// Add a token validation endpoint
+app.get("/api/admin/validate", authenticateAdmin, async (req, res) => {
+  try {
+    res.json({
+      valid: true,
+      admin: {
+        id: req.admin.id,
+        username: req.admin.username,
+      },
+    })
+  } catch (err) {
+    res.status(401).json({ valid: false, error: err.message })
   }
 })
 
@@ -195,9 +339,12 @@ app.post("/api/admin/upload", authenticateAdmin, (req, res) => {
 // Admin Bookings
 app.get("/api/admin/bookings", authenticateAdmin, async (req, res) => {
   try {
+    console.log("📋 Fetching bookings for admin:", req.admin.username)
     const bookings = await Booking.find().sort({ createdAt: -1 })
+    console.log(`✅ Found ${bookings.length} bookings`)
     res.json(bookings)
   } catch (err) {
+    console.error("❌ Error fetching bookings:", err)
     res.status(500).json({ message: "Server error", error: err.message })
   }
 })
@@ -222,9 +369,12 @@ app.patch("/api/admin/bookings/:id", authenticateAdmin, async (req, res) => {
 // Admin Rooms
 app.get("/api/admin/rooms", authenticateAdmin, async (req, res) => {
   try {
+    console.log("🏠 Fetching rooms for admin:", req.admin.username)
     const rooms = await Room.find().sort({ createdAt: -1 })
+    console.log(`✅ Found ${rooms.length} rooms`)
     res.json(rooms)
   } catch (err) {
+    console.error("❌ Error fetching rooms:", err)
     res.status(500).json({ message: "Server error", error: err.message })
   }
 })
@@ -363,7 +513,20 @@ app.get("/api/rooms/available", async (req, res) => {
 
 // Health check route
 app.get("/api/health", (req, res) => {
-  res.json({ status: "OK", timestamp: new Date().toISOString() })
+  res.json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+  })
+})
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err)
+  res.status(500).json({
+    message: "Internal server error",
+    error: process.env.NODE_ENV === "development" ? err.message : "Something went wrong",
+  })
 })
 
 // SERVER START
@@ -372,9 +535,11 @@ mongoose.connection.once("open", async () => {
   await initializeAdmin()
   await initializeRooms()
   app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`)
-    console.log(`Uploads directory: ${uploadsDir}`)
-    console.log("Default admin credentials: username: admin, password: admin123")
+    console.log(`🚀 Server running on port ${PORT}`)
+    console.log(`📁 Uploads directory: ${uploadsDir}`)
+    console.log(`🔑 JWT Secret: ${process.env.JWT_SECRET || "your-secret-key"}`)
+    console.log(`🌐 Health check: http://localhost:${PORT}/api/health`)
+    console.log("👤 Default admin credentials: username: admin, password: admin123")
   })
 })
 
